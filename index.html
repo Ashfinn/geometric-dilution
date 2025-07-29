@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMOTE // Geometric Dilution Analysis Interface</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- Base Setup & Animations --- */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            border-radius: 0 !important;
+        }
+
+        /* --- Color & Style Variables (Technical Light Theme v2) --- */
+        :root {
+            --bg-primary: #F9FAFB;
+            --bg-secondary: #FFFFFF;
+            --border-color: #E5E7EB;
+            --text-primary: #111827;
+            --text-secondary: #6B7280;
+            --text-monospace: #374151;
+
+            /* Vibrant Accent Palette */
+            --accent-cyan: #0891B2;
+            --accent-magenta: #BE185D;
+            --accent-green: #059669;
+            --accent-orange: #D97706;
+            --header-gradient: linear-gradient(45deg, var(--accent-cyan) 0%, var(--accent-magenta) 100%);
+
+            --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-monospace: 'JetBrains Mono', monospace;
+
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+        }
+
+        /* --- General Body & Layout Styles --- */
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image:
+                linear-gradient(rgba(229, 231, 235, 0.5) 1px, transparent 1px),
+                linear-gradient(to right, rgba(229, 231, 235, 0.5) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-lg);
+        }
+
+        /* --- Header --- */
+        .header {
+            text-align: center;
+            padding: var(--space-xl) 0;
+            margin-bottom: var(--space-lg);
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 2.75rem);
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            background: var(--header-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: var(--space-md);
+        }
+
+        .header p {
+            font-size: clamp(1rem, 2.5vw, 1.1rem);
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin: 0 auto;
+            font-weight: 400;
+        }
+
+        /* --- Navigation --- */
+        .navigation {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background-color: rgba(249, 250, 251, 0.85);
+            backdrop-filter: blur(8px);
+            padding: var(--space-md);
+            margin-bottom: var(--space-xl);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background-color: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            padding: var(--space-sm) var(--space-lg);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--text-primary);
+        }
+
+        .nav-btn.active {
+            color: white;
+            background: var(--text-primary);
+            border-color: var(--text-primary);
+        }
+        
+        /* --- Card & Grid System --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr));
+            gap: var(--space-lg);
+        }
+        
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: var(--space-lg);
+            transition: border 0.3s ease;
+            position: relative;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--header-gradient);
+            transform: scaleX(0);
+            transform-origin: center;
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .card:hover {
+            border-color: #D1D5DB;
+        }
+        
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card h2 {
+            color: var(--text-primary);
+            margin-bottom: var(--space-md);
+            font-size: 1.25rem;
+            padding-bottom: var(--space-md);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 700;
+            font-family: var(--font-monospace);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.3s ease-out; }
+        
+        /* --- Metric Boxes --- */
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-md);
+            margin-top: var(--space-lg);
+        }
+
+        .metric {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-left-width: 3px;
+            padding: var(--space-md);
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        .metric:hover {
+            border-color: var(--color-hover);
+            background-color: var(--color-light);
+        }
+        
+        /* Individual Metric Colors */
+        .metric.c1 { --color-hover: var(--accent-cyan); --color-light: rgba(8, 145, 178, 0.05); border-left-color: var(--accent-cyan); }
+        .metric.c2 { --color-hover: var(--accent-magenta); --color-light: rgba(190, 24, 93, 0.05); border-left-color: var(--accent-magenta); }
+        .metric.c3 { --color-hover: var(--accent-orange); --color-light: rgba(217, 119, 6, 0.05); border-left-color: var(--accent-orange); }
+        .metric.c4 { --color-hover: var(--accent-green); --color-light: rgba(5, 150, 105, 0.05); border-left-color: var(--accent-green); }
+
+        .metric-value {
+            font-size: clamp(1.75rem, 4vw, 2.25rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+        
+        .metric-label {
+            font-family: var(--font-monospace);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            margin-top: var(--space-sm);
+        }
+        .metric-label .icon { font-size: 0.8rem; }
+        .c1 .icon { color: var(--accent-cyan); }
+        .c2 .icon { color: var(--accent-magenta); }
+        .c3 .icon { color: var(--accent-orange); }
+        .c4 .icon { color: var(--accent-green); }
+
+        /* --- Controls & Sliders --- */
+        .controls {
+            background-color: var(--bg-primary); padding: var(--space-lg); margin-top: var(--space-lg); border: 1px solid var(--border-color);
+        }
+        .control-group { margin-bottom: var(--space-lg); }
+        .control-group:last-child { margin-bottom: 0; }
+        .control-group label { display: block; font-family: var(--font-monospace); color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.5px; margin-bottom: var(--space-md); }
+        .control-row { display: flex; align-items: center; gap: var(--space-md); }
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 3px; background: var(--border-color); outline: none; cursor: pointer; transition: background 0.2s ease; }
+        input[type="range"]:hover { background: #D1D5DB; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--text-primary); cursor: pointer; transition: transform 0.2s ease, background-color 0.2s ease; }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); background-color: var(--accent-cyan); }
+        .control-value { min-width: 60px; text-align: center; font-weight: 700; color: var(--accent-cyan); background: var(--bg-secondary); padding: var(--space-sm); border: 1px solid var(--border-color); font-size: 0.9rem; font-family: var(--font-monospace); }
+
+        /* --- Other UI Elements --- */
+        .equation { background-color: var(--bg-primary); border: 1px solid var(--border-color); border-left: 3px solid var(--accent-cyan); padding: var(--space-md); margin: var(--space-lg) 0; font-family: var(--font-monospace); font-size: 0.95rem; color: var(--text-monospace); overflow-x: auto; }
+        .highlight { background: rgba(8, 145, 178, 0.1); padding: 2px 6px; color: var(--accent-cyan); font-weight: 600; }
+        .plot-container { position: relative; width: 100%; height: clamp(350px, 40vh, 500px); margin: var(--space-lg) 0; }
+        .dataset-table { width: 100%; border-collapse: collapse; margin: var(--space-lg) 0; font-size: 0.9rem; }
+        .dataset-table th, .dataset-table td { padding: var(--space-md); text-align: left; border-bottom: 1px solid var(--border-color); }
+        .dataset-table th { background-color: #F3F4F6; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
+        .dataset-table tbody tr:hover { background-color: #F9FAFB; }
+        .recommendation-box { padding: var(--space-lg); margin-top: var(--space-lg); border: 1px solid var(--border-color); transition: all 0.3s ease; }
+        .recommendation-box h3 { margin-bottom: var(--space-md); font-family: var(--font-monospace); font-size: 1.1rem; }
+        .recommendation-box ul { list-style-position: inside; padding-left: var(--space-sm); color: var(--text-secondary); }
+
+        /* --- Responsive Design --- */
+        @media (max-width: 768px) {
+            .container { padding: var(--space-md); }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .control-row { flex-direction: column; align-items: stretch; gap: var(--space-md); }
+            .control-value { align-self: center; }
+            .metric-grid { grid-template-columns: repeat(2, 1fr); }
+            .dataset-table thead { display: none; }
+            .dataset-table, .dataset-table tbody, .dataset-table tr, .dataset-table td { display: block; width: 100%; }
+            .dataset-table tr { border: 1px solid var(--border-color); margin-bottom: var(--space-lg); padding: var(--space-md); }
+            .dataset-table td { border: none; padding-left: 50%; position: relative; text-align: right; }
+            .dataset-table td:not(:last-child) { border-bottom: 1px solid var(--border-color); }
+            .dataset-table td::before { content: attr(data-label); position: absolute; left: var(--space-md); width: 45%; padding-right: var(--space-sm); white-space: nowrap; text-align: left; font-weight: bold; color: var(--text-primary); }
+        }
+        @media (max-width: 480px) {
+            .metric-grid { grid-template-columns: 1fr; }
+            .nav-buttons { flex-direction: column; align-items: stretch; }
+            .nav-btn { text-align: center; }
+        }
+        @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition-duration: 0.01ms !important; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>SMOTE // GEOMETRIC_DILUTION_ANALYSIS</h1>
+            <p>Interactive exploration of SMOTE's fundamental limitations in high-dimensional spaces through geometric analysis and empirical validation.</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="navigation">
+            <div class="nav-buttons">
+                <button class="nav-btn active" onclick="showSection('theoretical')">Theoretical_Framework</button>
+                <button class="nav-btn" onclick="showSection('empirical')">Empirical_Results</button>
+                <button class="nav-btn" onclick="showSection('datasets')">Dataset_Analysis</button>
+                <button class="nav-btn" onclick="showSection('insights')">Key_Insights</button>
+                <button class="nav-btn" onclick="showSection('framework')">Decision_Framework</button>
+            </div>
+        </nav>
+
+        <!-- Theoretical Framework Section -->
+        <section id="theoretical" class="section active">
+            <div class="card">
+                <h2>// GEOMETRIC_DILUTION_THEORY</h2>
+                <p>SMOTE's fundamental limitation lies in its geometric construction. As dimensionality increases, synthetic samples become increasingly confined to negligible subspaces.</p>
+                <div class="equation">
+                    <strong>[Coverage Ratio Formula]</strong><br>
+                    CR(d) = V_synthetic / V_feature_space = ε^(d-1)<br>
+                    <em>Where ε ≈ 0.842 in 2D, approaching 0 as d increases</em>
+                </div>
+                <div class="controls">
+                    <div class="control-group"><label for="dimensionSlider">[SELECT DIMENSIONS]</label><div class="control-row"><input type="range" id="dimensionSlider" min="2" max="20" value="2" oninput="updateGeometricPlot()"><span class="control-value" id="dimensionValue">2</span></div></div>
+                    <div class="control-group"><label for="sampleSlider">[SELECT SAMPLE POINTS]</label><div class="control-row"><input type="range" id="sampleSlider" min="10" max="1000" value="50" step="10" oninput="updateSampleVisualization()"><span class="control-value" id="sampleValue">50</span></div></div>
+                </div>
+                <div id="geometricPlot" class="plot-container"></div>
+                <div class="metric-grid">
+                    <div class="metric c1"><div class="metric-value" id="coverageRatio">84.2%</div><div class="metric-label"><span class="icon">▣</span>Coverage Ratio</div></div>
+                    <div class="metric c2"><div class="metric-value" id="effectiveVolume">0.842</div><div class="metric-label"><span class="icon">◈</span>Effective Volume</div></div>
+                    <div class="metric c3"><div class="metric-value" id="dilutionFactor">1.19x</div><div class="metric-label"><span class="icon">◗</span>Dilution Factor</div></div>
+                    <div class="metric c4"><div class="metric-value" id="sampleCount">50</div><div class="metric-label"><span class="icon">⊕</span>Sample Points</div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Other Sections (Content unchanged, just structure) -->
+        <section id="empirical" class="section">
+            <div class="dashboard-grid">
+                <div class="card"><h2>// PERFORMANCE_ANALYSIS</h2><p>Comprehensive evaluation across 5 datasets with rigorous statistical testing using Holm-Bonferroni correction.</p><div id="performancePlot" class="plot-container"></div></div>
+                <div class="card"><h2>// STATISTICAL_SIGNIFICANCE</h2><p>Effect sizes (Cohen's d) showing when SMOTE provides meaningful improvements vs. when it causes performance degradation.</p><div id="significancePlot" class="plot-container"></div></div>
+            </div>
+            <div class="card" style="margin-top: var(--space-lg);"><h2>// METHOD_COMPARISON</h2><p>Comparison of SMOTE variants reveals similar performance due to shared geometric constraints.</p><div id="methodComparisonPlot" class="plot-container"></div></div>
+        </section>
+        
+        <section id="datasets" class="section">
+            <div class="card">
+                <h2>// DATASET_CHARACTERISTICS</h2>
+                <table class="dataset-table">
+                     <thead><tr><th>Dataset</th><th>Samples</th><th>Features</th><th>Imbalance Ratio</th><th>SMOTE Impact</th><th>Best Method</th></tr></thead>
+                     <tbody>
+                         <tr><td data-label="Dataset"><strong>Wine Quality</strong></td><td data-label="Samples">4,898</td><td data-label="Features">11</td><td data-label="Imbalance Ratio">26:1</td><td data-label="SMOTE Impact"><span class="highlight" style="color:var(--accent-magenta);background:rgba(190, 24, 93, 0.1);">Negative</span></td><td data-label="Best Method">Random Oversampling</td></tr>
+                         <tr><td data-label="Dataset"><strong>Breast Cancer</strong></td><td data-label="Samples">569</td><td data-label="Features">30</td><td data-label="Imbalance Ratio">1.68:1</td><td data-label="SMOTE Impact"><span class="highlight" style="color:var(--accent-orange);background:rgba(217, 119, 6, 0.1);">Minimal</span></td><td data-label="Best Method">Original Dataset</td></tr>
+                         <tr><td data-label="Dataset"><strong>Wine (Sklearn)</strong></td><td data-label="Samples">178</td><td data-label="Features">13</td><td data-label="Imbalance Ratio">1.4:1</td><td data-label="SMOTE Impact"><span class="highlight" style="color:var(--accent-green);background:rgba(5, 150, 105, 0.1);">Positive</span></td><td data-label="Best Method">SMOTE</td></tr>
+                         <tr><td data-label="Dataset"><strong>Credit Fraud</strong></td><td data-label="Samples">284,807</td><td data-label="Features">28</td><td data-label="Imbalance Ratio">577:1</td><td data-label="SMOTE Impact"><span class="highlight" style="color:var(--accent-cyan);background:rgba(8, 145, 178, 0.1);">Context-Dependent</span></td><td data-label="Best Method">Tree-based + SMOTE</td></tr>
+                         <tr><td data-label="Dataset"><strong>High Dimensional</strong></td><td data-label="Samples">1,000</td><td data-label="Features">50</td><td data-label="Imbalance Ratio">9:1</td><td data-label="SMOTE Impact"><span class="highlight" style="color:var(--accent-magenta);background:rgba(190, 24, 93, 0.1);">Severely Negative</span></td><td data-label="Best Method">Random Oversampling</td></tr>
+                     </tbody>
+                </table>
+                <div class="metric-grid">
+                    <div class="metric c1"><div class="metric-value">145</div><div class="metric-label"><span class="icon">∑</span>STAT_TESTS</div></div>
+                    <div class="metric c2"><div class="metric-value">5</div><div class="metric-label"><span class="icon">❒</span>DATASETS</div></div>
+                    <div class="metric c3"><div class="metric-value">6</div><div class="metric-label"><span class="icon">Ѧ</span>CLASSIFIERS</div></div>
+                    <div class="metric c4"><div class="metric-value">α=0.05</div><div class="metric-label"><span class="icon">⍺</span>SIGNIFICANCE</div></div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="insights" class="section">
+            <div class="dashboard-grid">
+                <div class="card"><h2>// CLASSIFIER_DEPENDENCY</h2><p><strong>Linear models</strong> are consistently harmed by SMOTE in high-dimensional spaces, while <strong>tree-based models</strong> can still benefit due to their ability to handle sparse feature interactions.</p><div id="classifierImpactPlot" class="plot-container"></div></div>
+                <div class="card"><h2>// SIMPLE_METHODS_WIN</h2><p>Random oversampling often matches or exceeds sophisticated SMOTE variants, suggesting that <span class="highlight">complexity doesn't always improve performance</span> when geometric constraints dominate.</p><div id="simplicityPlot" class="plot-container"></div></div>
+            </div>
+            <div class="card" style="margin-top: var(--space-lg);"><h2>// GEOMETRIC_CONSTRAINTS</h2><p>The fundamental issue isn't the specific SMOTE algorithm, but the geometric reality that synthetic samples in high dimensions occupy negligible volume relative to the feature space.</p><div class="equation"><strong>[Key Finding]</strong><br>As d → ∞, Coverage Ratio → 0<br><em>This explains why all SMOTE variants eventually fail in high dimensions.</em></div></div>
+        </section>
+        
+        <section id="framework" class="section">
+            <div class="card">
+                <h2>// EVIDENCE-BASED_DECISION_FRAMEWORK</h2>
+                <div class="controls">
+                    <div class="control-group"><label for="frameworkDims">[SET DATASET DIMENSIONS]</label><div class="control-row"><input type="range" id="frameworkDims" min="2" max="50" value="10" oninput="updateFramework()"><span class="control-value" id="frameworkDimsValue">10</span></div></div>
+                    <div class="control-group"><label for="frameworkImbalance">[SET IMBALANCE RATIO]</label><div class="control-row"><input type="range" id="frameworkImbalance" min="1" max="100" value="10" oninput="updateFramework()"><span class="control-value" id="frameworkImbalanceValue">10:1</span></div></div>
+                </div>
+                <div id="recommendationBox" class="recommendation-box"><h3 id="recommendationTitle"></h3><p id="recommendationText"></p><ul id="recommendationList"></ul></div>
+                <div class="metric-grid">
+                    <div class="metric c1"><div class="metric-value" id="expectedCoverage">15.3%</div><div class="metric-label"><span class="icon">▣</span>EXP. COVERAGE</div></div>
+                    <div class="metric c3"><div class="metric-value" id="riskLevel">Medium</div><div class="metric-label"><span class="icon">!</span>RISK LEVEL</div></div>
+                    <div class="metric c4"><div class="metric-value" id="confidence">65%</div><div class="metric-label"><span class="icon">✓</span>CONFIDENCE</div></div>
+                </div>
+            </div>
+            <div class="card" style="margin-top: var(--space-lg);"><h2>// FUTURE_DIRECTIONS</h2><p>Based on our geometric analysis, we propose several research directions:</p><ul style="list-style-type: '// '; padding-left: var(--space-lg);"><li style="margin-bottom: var(--space-md); padding-left: var(--space-sm);"><strong>Manifold-Aware Sampling:</strong> Generate samples along learned data manifolds.</li><li style="margin-bottom: var(--space-md); padding-left: var(--space-sm);"><strong>Generative Approaches:</strong> Use VAEs or GANs to learn the true data distribution.</li><li style="margin-bottom: var(--space-md); padding-left: var(--space-sm);"><strong>Adaptive Dimensionality:</strong> Dynamically select relevant features before applying SMOTE.</li><li style="margin-bottom: var(--space-md); padding-left: var(--space-sm);"><strong>Ensemble Methods:</strong> Combine multiple sampling strategies based on local geometry.</li></ul></div>
+        </section>
+    </div>
+
+    <script>
+        let currentSection = 'theoretical';
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            document.querySelector(`.nav-btn[onclick="showSection('${sectionId}')"]`).classList.add('active');
+            currentSection = sectionId;
+            setTimeout(() => initializeSectionPlots(sectionId), 50);
+        }
+
+        function initializeSectionPlots(sectionId) {
+            switch (sectionId) {
+                case 'theoretical': updateGeometricPlot(); break;
+                case 'empirical': createPerformancePlot(); createSignificancePlot(); createMethodComparisonPlot(); break;
+                case 'insights': createClassifierImpactPlot(); createSimplicityPlot(); break;
+                case 'framework': updateFramework(); break;
+            }
+        }
+
+        const getPlotlyLayout = (title) => ({
+            title: { text: `// ${title.toUpperCase()}`, font: { size: 16, color: 'var(--text-primary)', family: 'var(--font-monospace)' }, x: 0.05, xanchor: 'left' },
+            paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+            font: { color: 'var(--text-secondary)', family: 'var(--font-family)' },
+            xaxis: { gridcolor: 'var(--border-color)', zerolinecolor: 'var(--border-color)', title: { font: { size: 12 } } },
+            yaxis: { gridcolor: 'var(--border-color)', zerolinecolor: 'var(--border-color)', title: { font: { size: 12 } } },
+            margin: { l: 60, r: 20, t: 70, b: 50 },
+            legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center', font: { size: 12 } },
+            hovermode: 'closest', // FIX: Ensures hover tooltips work reliably
+            hoverlabel: { // FIX: Styles the hover tooltips
+                bgcolor: 'var(--text-primary)',
+                font: { color: 'var(--bg-secondary)', family: 'var(--font-monospace)', size: 12 },
+                bordercolor: 'var(--border-color)'
+            }
+        });
+        
+        function updateGeometricPlot() {
+            const dims = parseInt(document.getElementById('dimensionSlider').value);
+            document.getElementById('dimensionValue').textContent = dims;
+            const epsilon = 0.842, coverageRatio = Math.pow(epsilon, dims - 1), dilutionFactor = 1 / coverageRatio;
+            document.getElementById('coverageRatio').textContent = (coverageRatio * 100).toFixed(1) + '%';
+            document.getElementById('effectiveVolume').textContent = coverageRatio.toFixed(3);
+            document.getElementById('dilutionFactor').textContent = dilutionFactor > 1000 ? '>1k x' : dilutionFactor.toFixed(2) + 'x';
+            
+            const dimensions = Array.from({ length: 19 }, (_, i) => i + 2);
+            const coverageValues = dimensions.map(d => Math.pow(epsilon, d - 1) * 100);
+            const trace = { x: dimensions, y: coverageValues, type: 'scatter', mode: 'lines', line: { color: 'var(--accent-cyan)', width: 3 }, name: 'Coverage' };
+            const currentPoint = { x: [dims], y: [coverageRatio * 100], type: 'scatter', mode: 'markers', marker: { color: 'var(--accent-magenta)', size: 14, symbol: 'diamond', line: {color: '#fff', width:2} }, name: 'Current' };
+            const layout = getPlotlyLayout('SMOTE Coverage Ratio vs. Dimensionality');
+            layout.yaxis.type = 'log'; layout.yaxis.title.text = 'Coverage Ratio (%)'; layout.xaxis.title.text = 'Dimensions';
+            Plotly.newPlot('geometricPlot', [trace, currentPoint], layout, { responsive: true, displayModeBar: false });
+        }
+
+        function updateSampleVisualization() {
+            const samples = parseInt(document.getElementById('sampleSlider').value);
+            document.getElementById('sampleValue').textContent = samples;
+            document.getElementById('sampleCount').textContent = samples;
+            updateGeometricPlot();
+        }
+
+        function createPerformancePlot() {
+            const datasets = ['Wine Quality', 'Breast Cancer', 'Wine Sklearn', 'Credit Fraud', 'High Dim'];
+            const trace1 = { x: datasets, y: [0.65, 0.89, 0.92, 0.78, 0.71], type: 'bar', name: 'Original', marker: { color: 'var(--accent-cyan)' } };
+            const trace2 = { x: datasets, y: [0.58, 0.88, 0.95, 0.82, 0.45], type: 'bar', name: 'SMOTE', marker: { color: 'var(--accent-magenta)' } };
+            const trace3 = { x: datasets, y: [0.72, 0.89, 0.94, 0.81, 0.73], type: 'bar', name: 'Random OS', marker: { color: 'var(--accent-green)' } };
+            const layout = getPlotlyLayout('F1-Score Comparison');
+            layout.barmode = 'group';
+            Plotly.newPlot('performancePlot', [trace1, trace2, trace3], layout, { responsive: true, displayModeBar: false });
+        }
+
+        function createSignificancePlot() {
+            const effectSizes = [ [-0.8, 0.1, 0.3, -0.9, -1.2], [0.2, 0.0, 0.4, 0.3, -0.1], [-0.3, -0.1, 0.2, 0.1, -0.7], [-0.9, -0.2, 0.1, -0.8, -1.5], [0.4, 0.1, 0.5, 0.4, 0.2], [-0.2, 0.0, 0.2, -0.1, -0.5] ];
+            const trace = { z: effectSizes, x: ['Wine Q', 'Breast C', 'Wine S', 'Credit F', 'High D'], y: ['LogReg', 'RF', 'SVM', 'MLP', 'XGB', 'NB'], type: 'heatmap', colorscale: [[0, 'var(--accent-magenta)'], [0.5, '#FFFFFF'], [1, 'var(--accent-green)']], colorbar: { title: "Cohen's d", titleside: 'right' } };
+            const layout = getPlotlyLayout('Effect Size: SMOTE vs. Original');
+            Plotly.newPlot('significancePlot', [trace], layout, { responsive: true, displayModeBar: false });
+        }
+        
+        function createMethodComparisonPlot() {
+            const methods = ['Original', 'SMOTE', 'ADASYN', 'BorderlineSMOTE', 'Random OS'];
+            const trace = { x: methods, y: [0.79, 0.74, 0.75, 0.73, 0.82], type: 'bar', marker: { color: ['var(--accent-cyan)', 'var(--accent-magenta)', 'var(--accent-orange)', '#A855F7', 'var(--accent-green)'] }, text: [0.79, 0.74, 0.75, 0.73, 0.82].map(s => s.toFixed(2)), textposition: 'auto', hoverinfo: 'x+y' };
+            const layout = getPlotlyLayout('Average F1-Score by Method');
+            Plotly.newPlot('methodComparisonPlot', [trace], layout, { responsive: true, displayModeBar: false });
+        }
+        
+        function createClassifierImpactPlot() {
+            const classifiers = ['LogReg', 'RF', 'SVM', 'MLP', 'XGB', 'NB'];
+            const trace1 = { x: classifiers, y: [0.1, 0.3, 0.2, 0.0, 0.4, 0.1], type: 'bar', name: 'Low Dim (≤10)', marker: { color: 'var(--accent-green)' } };
+            const trace2 = { x: classifiers, y: [-0.8, 0.1, -0.4, -1.0, 0.2, -0.3], type: 'bar', name: 'High Dim (>20)', marker: { color: 'var(--accent-magenta)' } };
+            const layout = getPlotlyLayout('SMOTE Impact by Classifier');
+            layout.yaxis.title.text = "Effect Size (Cohen's d)"; layout.barmode = 'group';
+            Plotly.newPlot('classifierImpactPlot', [trace1, trace2], layout, { responsive: true, displayModeBar: false });
+        }
+
+        function createSimplicityPlot() {
+            const trace = { x: [1, 5, 4, 3, 2], y: [0.82, 0.74, 0.75, 0.73, 0.79], type: 'scatter', mode: 'markers+text', marker: { size: 15, color: ['var(--accent-green)', 'var(--accent-magenta)', 'var(--accent-orange)', '#A855F7', 'var(--accent-cyan)'] }, text: ['Random OS', 'SMOTE', 'ADASYN', 'BorderlineSMOTE', 'Original'], textposition: 'top center', hoverinfo: 'text+x+y' };
+            const layout = getPlotlyLayout('Performance vs. Complexity');
+            layout.xaxis.title.text = 'Method Complexity (Higher is more complex)'; layout.yaxis.title.text = 'Average F1-Score';
+            Plotly.newPlot('simplicityPlot', [trace], layout, { responsive: true, displayModeBar: false });
+        }
+        
+        function updateFramework() {
+            const dims = parseInt(document.getElementById('frameworkDims').value);
+            const imbalance = parseInt(document.getElementById('frameworkImbalance').value);
+            document.getElementById('frameworkDimsValue').textContent = dims;
+            document.getElementById('frameworkImbalanceValue').textContent = imbalance + ':1';
+            const coverage = Math.pow(0.842, dims - 1) * 100;
+            document.getElementById('expectedCoverage').textContent = coverage.toFixed(1) + '%';
+            
+            let config;
+            if (dims <= 5 && imbalance >= 5) {
+                config = { title: '[STATUS: GREEN] Use SMOTE', text: 'Ideal conditions. SMOTE is likely to improve performance. Proceed with standard validation.', risk: 'Low', confidence: '85%', color: 'var(--accent-green)', lightBg: 'rgba(5, 150, 105, 0.05)', list: ['Consider Random Forest or XGBoost', 'Validate with cross-validation'] };
+            } else if (dims <= 15 && imbalance >= 3) {
+                config = { title: '[STATUS: AMBER] Use with Caution', text: 'Moderate risk. Benefits may be marginal. Strongly prefer tree-based models and compare against Random Oversampling.', risk: 'Medium', confidence: '65%', color: 'var(--accent-orange)', lightBg: 'rgba(217, 119, 6, 0.05)', list: ['Compare against Random Oversampling', 'Crucial to use tree-based models'] };
+            } else {
+                config = { title: '[STATUS: RED] Avoid SMOTE', text: 'High risk of performance degradation due to geometric dilution. Random Oversampling is a safer alternative.', risk: 'High', confidence: '90%', color: 'var(--accent-magenta)', lightBg: 'rgba(190, 24, 93, 0.05)', list: ['Default to Random Oversampling', 'Focus on feature engineering instead'] };
+            }
+
+            document.getElementById('recommendationTitle').textContent = config.title;
+            document.getElementById('recommendationText').textContent = config.text;
+            document.getElementById('riskLevel').textContent = config.risk;
+            document.getElementById('confidence').textContent = config.confidence;
+            const recBox = document.getElementById('recommendationBox');
+            recBox.style.borderLeft = `3px solid ${config.color}`;
+            recBox.style.backgroundColor = config.lightBg;
+
+            const listEl = document.getElementById('recommendationList');
+            listEl.innerHTML = '';
+            config.list.forEach(item => {
+                const li = document.createElement('li'); li.textContent = item; listEl.appendChild(li);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('theoretical');
+            window.addEventListener('resize', () => {
+                document.querySelectorAll('.plot-container').forEach(container => {
+                    if (container.offsetParent !== null) { Plotly.relayout(container.id, {}); }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
