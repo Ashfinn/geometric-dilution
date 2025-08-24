@@ -30,3 +30,4 @@
 *.run.xml
 # Ignore LaTeX files
 *.tex
+.ipynb_checkpoints/
